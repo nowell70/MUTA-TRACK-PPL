@@ -99,14 +99,14 @@ git push origin main`;
           </div>
         </div>
 
-        {/* 2. Mengapa Error "Page not found" Terjadi & Solusinya */}
-        <div className="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 rounded-xl space-y-2 text-xs text-amber-900 dark:text-amber-200">
-          <div className="flex items-center gap-2 font-bold">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>Mengapa Link Sebelumnya Muncul &ldquo;Page not found&rdquo;?</span>
+        {/* 2. Solusi Error Build 10s & Pengaturan GitHub Pages */}
+        <div className="p-4 bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-800/80 rounded-xl space-y-2 text-xs text-teal-950 dark:text-teal-200">
+          <div className="flex items-center gap-2 font-bold text-teal-900 dark:text-teal-300">
+            <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+            <span>Perbaikan Workflow Deploy & Pengaturan GitHub Pages</span>
           </div>
-          <p className="text-amber-800 dark:text-amber-300 leading-relaxed text-[11px]">
-            Link <code className="bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded">ais-pre-...</code> adalah link share sementara dari studio. Untuk menampilkan antarmuka aplikasi secara permanen pada link <strong>https://nowell70.github.io/MUTA-TRACK-PPL/</strong>, repository Anda cukup mengaktifkan fitur <strong>GitHub Pages via GitHub Actions</strong>.
+          <p className="text-teal-900 dark:text-teal-300 leading-relaxed text-[11px]">
+            Error build 10s sebelumnya terjadi karena GitHub Actions mencari file <code>package-lock.json</code> saat caching dependensi. Kami telah menghapus dependensi cache ketat tersebut, menambahkan file <code>package-lock.json</code>, serta menambahkan dukungan deployment ganda (baik via <strong>GitHub Actions</strong> maupun branch <strong>gh-pages</strong>).
           </p>
         </div>
 
