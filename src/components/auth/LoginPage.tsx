@@ -21,6 +21,10 @@ import {
   ExternalLink,
   Send,
   Lock,
+  Eye,
+  EyeOff,
+  CheckSquare,
+  Square,
 } from 'lucide-react';
 import { User } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
@@ -45,13 +49,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'otp_verify'>('login');
 
   // Form fields
-  const [email, setEmail] = useState('noelbioinfnoel@apps.ipb.ac.id');
-  const [password, setPassword] = useState('biomuta2026');
-  const [fullName, setFullName] = useState('Noel Bioinformatician');
+  const [email, setEmail] = useState('demo@mutatrack.id');
+  const [password, setPassword] = useState('MutaTrack2026!');
+  const [fullName, setFullName] = useState('Pengguna Analisis');
   const [institution, setInstitution] = useState('Departemen Bioinformatika & Genomika Komputasi IPB');
   const [role, setRole] = useState<'Pengguna Analisis' | 'Bioinformatician'>('Pengguna Analisis');
 
-  // Verification state
+  // Password visibility & remember me
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+
+  // Field validation errors
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(null);
+
+  // Verification state for OTP
   const [generatedOtp, setGeneratedOtp] = useState<string>('849201');
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [resendCooldown, setResendCooldown] = useState<number>(45);
@@ -62,7 +75,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [emailSendingStatus, setEmailSendingStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [emailDeliveryNotice, setEmailDeliveryNotice] = useState<string>('');
 
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
@@ -105,28 +117,100 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     setResendCooldown(45);
     setShowSimulatedGmailToast(true);
     setOtpDigits(['', '', '', '', '', '']);
-    setError(null);
+    setGeneralError(null);
 
     // Call real email sending helper
     dispatchOtpEmail(code, targetEmail, targetName);
   };
 
-  // Handle Login Submit
+  // Validate form fields prior to submission
+  const validateForm = () => {
+    let isValid = true;
+    setEmailError(null);
+    setPasswordError(null);
+    setGeneralError(null);
+
+    const emailTrimmed = email.trim();
+    if (!emailTrimmed) {
+      setEmailError('Email wajib diisi.');
+      isValid = false;
+    } else {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(emailTrimmed)) {
+        setEmailError('Format email tidak valid.');
+        isValid = false;
+      }
+    }
+
+    if (!password) {
+      setPasswordError('Password wajib diisi.');
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
+  // Handle Direct Login Submit
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
-    if (!email.trim() || !email.includes('@')) {
-      setError('Harap masukkan alamat Gmail / email institusi Anda yang valid.');
-      return;
-    }
-    if (!password.trim()) {
-      setError('Harap masukkan kata sandi Anda.');
+    if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
 
+    setTimeout(() => {
+      setIsLoading(false);
+      const emailNormalized = email.trim().toLowerCase();
+
+      // Check credentials:
+      // 1. UC-01 Demo Account: demo@mutatrack.id / MutaTrack2026!
+      // 2. IPB Researcher Account: noelbioinfnoel@apps.ipb.ac.id / biomuta2026
+      // 3. Or user credentials with valid format
+      const isDemoAccount =
+        emailNormalized === 'demo@mutatrack.id' && password === 'MutaTrack2026!';
+      const isIpAccount =
+        emailNormalized === 'noelbioinfnoel@apps.ipb.ac.id' && (password === 'biomuta2026' || password === 'MutaTrack2026!');
+      const isValidCustom =
+        emailNormalized.includes('@') && password.length >= 6;
+
+      if (isDemoAccount || isIpAccount || isValidCustom) {
+        const loggedInUser: User = {
+          id: isDemoAccount ? 'USR-DEMO-01' : `USR-${Date.now().toString().slice(-4)}`,
+          name: isDemoAccount ? 'Pengguna Analisis' : fullName || 'Noel Bioinformatician',
+          email: email.trim(),
+          role: role,
+          affiliation: institution || 'Departemen Bioinformatika & Genomika Komputasi IPB',
+          institution: institution || 'Departemen Bioinformatika & Genomika Komputasi IPB',
+          isEmailVerified: true,
+          verifiedAt: new Date().toISOString(),
+          lastLoginAt: new Date().toLocaleString(),
+        };
+
+        // Store rememberMe preference
+        if (rememberMe) {
+          try {
+            localStorage.setItem('mutatrack_remember_me', 'true');
+          } catch {
+            // ignore
+          }
+        }
+
+        onLoginSuccess(loggedInUser);
+      } else {
+        setGeneralError('Email atau password tidak valid.');
+      }
+    }, 450);
+  };
+
+  // Handle Login via 2FA OTP to Gmail
+  const handleRequestOtpLogin = () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
       generateNewCodeAndSend(email.trim(), fullName);
@@ -137,18 +221,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Handle Register Submit
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setEmailError(null);
+    setPasswordError(null);
+    setGeneralError(null);
 
     if (!fullName.trim()) {
-      setError('Harap masukkan nama lengkap Anda.');
+      setGeneralError('Harap masukkan nama lengkap Anda.');
       return;
     }
-    if (!email.trim() || !email.includes('@')) {
-      setError('Harap masukkan alamat Gmail aktif Anda (misal: user@gmail.com atau user@apps.ipb.ac.id).');
+
+    const emailTrimmed = email.trim();
+    if (!emailTrimmed) {
+      setEmailError('Email wajib diisi.');
       return;
     }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(emailTrimmed)) {
+      setEmailError('Format email tidak valid.');
+      return;
+    }
+
+    if (!password) {
+      setPasswordError('Password wajib diisi.');
+      return;
+    }
+
     if (password.length < 6) {
-      setError('Kata sandi minimal 6 karakter demi keamanan akun bioinformatika.');
+      setPasswordError('Kata sandi minimal 6 karakter demi keamanan.');
       return;
     }
 
@@ -156,23 +256,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
     setTimeout(() => {
       setIsLoading(false);
-      generateNewCodeAndSend(email.trim(), fullName.trim());
-      setAuthMode('otp_verify');
-    }, 450);
+      const newUser: User = {
+        id: `USR-${Date.now().toString().slice(-4)}`,
+        name: fullName.trim(),
+        email: emailTrimmed,
+        role: role,
+        affiliation: institution.trim() || 'Laboratorium Bioinformatika',
+        institution: institution.trim() || 'Laboratorium Bioinformatika',
+        isEmailVerified: true,
+        verifiedAt: new Date().toISOString(),
+        lastLoginAt: new Date().toLocaleString(),
+      };
+      onLoginSuccess(newUser);
+    }, 500);
   };
 
   // Direct Sign in with Google (OAuth / Google Account)
   const handleGoogleSignIn = () => {
     setIsLoading(true);
-    setError(null);
+    setGeneralError(null);
 
     setTimeout(() => {
       setIsLoading(false);
-      // Create verified user directly
       const verifiedUser: User = {
-        id: `USR-${Date.now().toString().slice(-4)}`,
+        id: 'USR-GOOGLE-01',
         name: fullName || 'Noel Bioinformatician',
-        email: email.trim(),
+        email: email.includes('@') ? email.trim() : 'noelbioinfnoel@apps.ipb.ac.id',
         role: 'Pengguna Analisis',
         affiliation: institution || 'Departemen Bioinformatika & Genomika Komputasi IPB',
         institution: institution || 'Departemen Bioinformatika & Genomika Komputasi IPB',
@@ -181,7 +290,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         lastLoginAt: new Date().toLocaleString(),
       };
       onLoginSuccess(verifiedUser);
-    }, 600);
+    }, 500);
   };
 
   // Handle OTP digit changes
@@ -231,7 +340,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
   // Execute OTP Verification
   const executeVerification = (codeToVerify: string) => {
-    setError(null);
+    setGeneralError(null);
     setIsVerifying(true);
 
     setTimeout(() => {
@@ -246,7 +355,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
         const verifiedUser: User = {
           id: `USR-${Date.now().toString().slice(-4)}`,
-          name: fullName || 'Noel Bioinformatician',
+          name: fullName || 'Pengguna Analisis',
           email: email.trim(),
           role: role,
           affiliation: institution || 'Departemen Bioinformatika & Genomika Komputasi IPB',
@@ -259,9 +368,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         // Complete login after success animation
         setTimeout(() => {
           onLoginSuccess(verifiedUser);
-        }, 900);
+        }, 600);
       } else {
-        setError('Kode verifikasi tidak cocok. Silakan periksa email yang masuk di akun Gmail Anda.');
+        setGeneralError('Kode verifikasi tidak cocok. Silakan periksa email yang masuk di akun Gmail Anda.');
       }
     }, 600);
   };
@@ -281,51 +390,64 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   };
 
   // Preset demo account autofill
-  const handleUseDemo = () => {
+  const handleUseDemoUC01 = () => {
+    setEmail('demo@mutatrack.id');
+    setPassword('MutaTrack2026!');
+    setFullName('Pengguna Analisis');
+    setInstitution('Departemen Bioinformatika & Genomika Komputasi IPB');
+    setEmailError(null);
+    setPasswordError(null);
+    setGeneralError(null);
+  };
+
+  const handleUseDemoNoel = () => {
     setEmail('noelbioinfnoel@apps.ipb.ac.id');
     setPassword('biomuta2026');
     setFullName('Noel Bioinformatician');
     setInstitution('Departemen Bioinformatika & Genomika Komputasi IPB');
-    setError(null);
+    setEmailError(null);
+    setPasswordError(null);
+    setGeneralError(null);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-teal-500 selection:text-white transition-colors">
       {/* Top Header Bar */}
-      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/90 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      <header className="border-b border-slate-200 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xs shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-500/10 dark:bg-teal-500/20 border border-teal-500/30 dark:border-teal-500/40 flex items-center justify-center text-teal-600 dark:text-teal-400 shadow-inner">
-            <Dna className="w-6 h-6" />
+          <div className="w-9 h-9 rounded-xl bg-teal-600/10 dark:bg-teal-500/20 border border-teal-600/20 dark:border-teal-500/30 flex items-center justify-center text-teal-700 dark:text-teal-400 shadow-inner">
+            <Dna className="w-5 h-5" aria-hidden="true" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">MutaTrack</span>
+              <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">MutaTrack</span>
               <span className="text-[10px] font-mono uppercase bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-2 py-0.5 rounded">
-                v1.4 • GATK Integrated
+                UC-01 Login
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Integrated Variant Calling Platform</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Integrated Variant Calling Platform</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {/* GitHub Live Website Button */}
           {onOpenDeployModal && (
             <button
               onClick={onOpenDeployModal}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
-              title="Lihat URL Live Website untuk GitHub"
+              title="Lihat URL Live Website untuk GitHub Pages"
             >
               <Globe className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-              <span className="hidden sm:inline">Website GitHub Pages</span>
+              <span className="hidden sm:inline">Deployment Guide</span>
             </button>
           )}
 
           {/* Theme Toggle Button (Light/Dark mode) */}
           <button
+            type="button"
             onClick={toggleTheme}
             className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
-            title={isDark ? 'Beralih ke Mode Terang (Light Mode)' : 'Beralih ke Mode Gelap (Dark Mode)'}
+            aria-label={isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
           >
             {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
           </button>
@@ -333,8 +455,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       </header>
 
       {/* Main Auth Container */}
-      <main className="flex-1 flex items-center justify-center p-6 relative">
-        {/* Floating Quick Reference Card */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 relative">
+        {/* Floating Quick Reference Card for 2FA */}
         {authMode === 'otp_verify' && showSimulatedGmailToast && (
           <div className="fixed top-20 right-4 sm:right-8 z-40 max-w-sm w-full bg-white dark:bg-slate-900 border-2 border-teal-500 rounded-2xl p-4 shadow-2xl space-y-3">
             <div className="flex items-start justify-between">
@@ -386,74 +508,84 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
         )}
 
-        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6 transition-colors">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6 transition-colors">
+          {/* Scientific Branding Header */}
+          <div className="text-center space-y-1.5">
+            <div className="inline-flex w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800/80 items-center justify-center text-teal-700 dark:text-teal-400 mb-1 shadow-inner">
+              <Dna className="w-7 h-7" aria-hidden="true" />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Welcome to MutaTrack
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+              Integrated analysis for genomic variant calling.
+            </p>
+          </div>
+
           {/* STEP 1 & 2: LOGIN / REGISTER */}
           {authMode !== 'otp_verify' ? (
             <>
-              {/* Tab Selector: Masuk / Daftar */}
+              {/* Tab Selector: Masuk (Sign In) / Daftar (Sign Up) */}
               <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
+                  id="tab-sign-in"
                   onClick={() => {
                     setAuthMode('login');
-                    setError(null);
+                    setGeneralError(null);
+                    setEmailError(null);
+                    setPasswordError(null);
                   }}
                   className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                     authMode === 'login'
-                      ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-xs'
+                      ? 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-400 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  Masuk Akun (Sign In)
+                  Masuk (Sign In)
                 </button>
                 <button
                   type="button"
+                  id="tab-sign-up"
                   onClick={() => {
                     setAuthMode('register');
-                    setError(null);
+                    setGeneralError(null);
+                    setEmailError(null);
+                    setPasswordError(null);
                   }}
                   className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                     authMode === 'register'
-                      ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-xs'
+                      ? 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-400 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  Daftar Akun Baru (Sign Up)
+                  Daftar Baru (Sign Up)
                 </button>
               </div>
 
-              {/* Title Header */}
-              <div className="space-y-1">
-                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  {authMode === 'login' ? 'Autentikasi Pengguna Sistem' : 'Pendaftaran Akun Bioinformatika'}
-                </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {authMode === 'login'
-                    ? 'Masuk menggunakan Gmail Anda. Kode autentikasi 6-digit akan dikirimkan langsung ke Gmail.'
-                    : 'Daftarkan akun Gmail aktif Anda untuk menjalankan pipeline DNA-seq GATK.'}
-                </p>
-              </div>
-
-              {/* Error Banner */}
-              {error && (
+              {/* General Authentication Error Banner */}
+              {generalError && (
                 <div
                   id="login-error-banner"
-                  className="bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-800/80 text-rose-700 dark:text-rose-300 px-4 py-3 rounded-xl text-xs flex items-start gap-2.5 animate-fadeIn"
+                  role="alert"
+                  aria-live="polite"
+                  className="bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900/80 text-red-800 dark:text-red-300 px-3.5 py-3 rounded-xl text-xs flex items-start gap-2.5 animate-fadeIn"
                 >
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  <span>{error}</span>
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span className="font-medium leading-relaxed">{generalError}</span>
                 </div>
               )}
 
               {/* GOOGLE ONE-CLICK SIGN IN */}
               <button
                 type="button"
+                id="google-sign-in-button"
                 onClick={handleGoogleSignIn}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-medium py-2.5 px-4 rounded-xl text-xs border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-xs"
+                className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-medium py-2.5 px-4 rounded-xl text-xs border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-xs disabled:opacity-60"
               >
                 {/* Official Google 'G' icon */}
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -476,68 +608,164 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
               <div className="relative flex py-1 items-center">
                 <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-                <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-medium uppercase">
-                  Atau via Email & Kode OTP
+                <span className="flex-shrink mx-3 text-[11px] text-slate-400 font-medium uppercase tracking-wider">
+                  Atau via Kredensial Akun
                 </span>
                 <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
               </div>
 
               {/* LOGIN FORM */}
               {authMode === 'login' ? (
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                <form onSubmit={handleLoginSubmit} noValidate className="space-y-4">
+                  {/* Email Field */}
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Alamat Gmail Anda
+                    <label
+                      htmlFor="login-email"
+                      className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                    >
+                      Email atau Username
                     </label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" aria-hidden="true" />
                       <input
+                        id="login-email"
+                        name="email"
                         type="email"
+                        autoComplete="email"
+                        disabled={isLoading}
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="contoh: user@gmail.com / nama@apps.ipb.ac.id"
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 font-mono transition-colors"
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (emailError) setEmailError(null);
+                          if (generalError) setGeneralError(null);
+                        }}
+                        placeholder="demo@mutatrack.id"
+                        className={`w-full bg-slate-50 dark:bg-slate-950 border rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 transition-colors focus:outline-none focus:ring-2 ${
+                          emailError
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                            : 'border-slate-300 dark:border-slate-800 focus:border-teal-600 focus:ring-teal-600/20 dark:focus:border-teal-400'
+                        }`}
                       />
                     </div>
+                    {emailError && (
+                      <p role="alert" className="text-[11px] font-medium text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                        <span>{emailError}</span>
+                      </p>
+                    )}
                   </div>
 
+                  {/* Password Field */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <label
+                        htmlFor="login-password"
+                        className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+                      >
                         Kata Sandi (Password)
                       </label>
-                      <span className="text-[11px] text-teal-600 dark:text-teal-400 font-mono">Secured Token</span>
+                      {/* Optional visual-only Forgot password */}
+                      <span
+                        tabIndex={0}
+                        role="button"
+                        className="text-[11px] text-teal-700 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300 hover:underline cursor-pointer select-none focus:outline-none"
+                        onClick={(e) => e.preventDefault()}
+                      >
+                        Lupa password?
+                      </span>
                     </div>
                     <div className="relative">
-                      <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                      <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" aria-hidden="true" />
                       <input
-                        type="password"
+                        id="login-password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
+                        disabled={isLoading}
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (passwordError) setPasswordError(null);
+                          if (generalError) setGeneralError(null);
+                        }}
                         placeholder="••••••••••••"
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 font-mono transition-colors"
+                        className={`w-full bg-slate-50 dark:bg-slate-950 border rounded-xl pl-9 pr-10 py-2.5 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 transition-colors focus:outline-none focus:ring-2 ${
+                          passwordError
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                            : 'border-slate-300 dark:border-slate-800 focus:border-teal-600 focus:ring-teal-600/20 dark:focus:border-teal-400'
+                        }`}
                       />
+                      <button
+                        type="button"
+                        id="toggle-password-button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer focus:outline-none"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" aria-hidden="true" />
+                        ) : (
+                          <Eye className="w-4 h-4" aria-hidden="true" />
+                        )}
+                      </button>
                     </div>
+                    {passwordError && (
+                      <p role="alert" className="text-[11px] font-medium text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" aria-hidden="true" />
+                        <span>{passwordError}</span>
+                      </p>
+                    )}
                   </div>
 
+                  {/* Remember Me Checkbox */}
+                  <div className="flex items-center justify-between pt-0.5">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-600 dark:text-slate-300">
+                      <input
+                        id="remember-me"
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        disabled={isLoading}
+                        className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 dark:border-slate-700 dark:bg-slate-900"
+                      />
+                      <span>Remember me</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={handleRequestOtpLogin}
+                      disabled={isLoading}
+                      className="text-[11px] text-slate-500 hover:text-teal-700 dark:hover:text-teal-300 flex items-center gap-1 cursor-pointer"
+                      title="Kirim kode verifikasi OTP 6 digit ke email"
+                    >
+                      <Lock className="w-3 h-3 text-teal-600" />
+                      <span>Masuk via 2FA Gmail</span>
+                    </button>
+                  </div>
+
+                  {/* Primary Login Submit Button */}
                   <button
                     type="submit"
+                    id="submit-login-button"
                     disabled={isLoading}
-                    className="w-full bg-teal-600 hover:bg-teal-500 text-white font-medium py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+                    className="w-full bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60"
                   >
                     {isLoading ? (
-                      <span>Menyiapkan Pengiriman Kode Gmail...</span>
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" aria-hidden="true" />
+                        <span>Memproses...</span>
+                      </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4" />
-                        <span>Kirim Kode Autentikasi ke Gmail</span>
+                        <span>Login</span>
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
                 </form>
               ) : (
-                /* REGISTER FORM */
-                <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+                /* REGISTER FORM (Sign Up) */
+                <form onSubmit={handleRegisterSubmit} noValidate className="space-y-3.5">
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                       Nama Lengkap
@@ -556,7 +784,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Alamat Gmail Aktif (Untuk Pengiriman Kode)
+                      Email Institusi / Gmail
                     </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -564,10 +792,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="contoh: user@gmail.com / nama@apps.ipb.ac.id"
+                        placeholder="contoh: user@gmail.com"
                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-teal-500 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono transition-colors"
                       />
                     </div>
+                    {emailError && (
+                      <p className="text-[11px] text-red-600 dark:text-red-400">{emailError}</p>
+                    )}
                   </div>
 
                   <div className="space-y-1">
@@ -593,53 +824,76 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     <div className="relative">
                       <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Minimal 6 karakter"
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-teal-500 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono transition-colors"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-teal-500 rounded-xl pl-9 pr-10 py-2 text-xs text-slate-900 dark:text-slate-100 font-mono transition-colors"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
+                    {passwordError && (
+                      <p className="text-[11px] text-red-600 dark:text-red-400">{passwordError}</p>
+                    )}
                   </div>
 
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-teal-600 hover:bg-teal-500 text-white font-medium py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+                    className="w-full bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60"
                   >
                     {isLoading ? (
-                      <span>Mendaftarkan Akun...</span>
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Memproses Pendaftaran...</span>
+                      </>
                     ) : (
                       <>
-                        <Send className="w-4 h-4" />
-                        <span>Daftar & Kirim Kode ke Gmail</span>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Daftar & Masuk ke MutaTrack</span>
                       </>
                     )}
                   </button>
                 </form>
               )}
 
-              {/* Demo Account Quick Access */}
+              {/* Demo Account Fast-Track Bar */}
               <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 dark:text-slate-400 font-medium">Akun Demo Pengguna Analisis:</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px] uppercase tracking-wider">
+                    Pilihan Akun Demo Cepat:
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={handleUseDemo}
-                    className="text-teal-600 dark:text-teal-400 hover:underline font-mono text-[11px] cursor-pointer"
+                    onClick={handleUseDemoUC01}
+                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-left transition-colors cursor-pointer"
                   >
-                    Isi Otomatis
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-teal-700 dark:text-teal-400">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Demo UC-01</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-mono truncate">demo@mutatrack.id</p>
                   </button>
-                </div>
-                <div className="bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 text-[11px] font-mono text-slate-700 dark:text-slate-300 space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Peran:</span>
-                    <span className="text-teal-600 dark:text-teal-300 font-semibold">Pengguna Analisis</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Gmail:</span>
-                    <span className="text-slate-900 dark:text-slate-200">noelbioinfnoel@apps.ipb.ac.id</span>
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleUseDemoNoel}
+                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-left transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-teal-700 dark:text-teal-400">
+                      <Sparkles className="w-3 h-3" />
+                      <span>Peneliti IPB</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-mono truncate">noelbioinfnoel@apps...</p>
+                  </button>
                 </div>
               </div>
             </>
@@ -649,85 +903,48 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               {/* Top back button */}
               <button
                 type="button"
-                onClick={() => {
-                  setAuthMode('login');
-                  setError(null);
-                }}
-                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 font-medium transition-colors cursor-pointer"
+                onClick={() => setAuthMode('login')}
+                className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Ganti Email / Kembali ke Login</span>
+                <span>Kembali ke Halaman Login</span>
               </button>
 
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/30 mx-auto flex items-center justify-center">
+              <div className="text-center space-y-1.5">
+                <div className="w-12 h-12 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-teal-500/20">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
-                <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  Verifikasi Kode Autentikasi Gmail
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  Verifikasi Akun Bioinformatika
                 </h2>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-xs mx-auto">
-                  Kode 6-digit keamanan telah dikirimkan ke alamat Gmail Anda:
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Masukkan 6 digit kode keamanan yang dikirimkan ke:
                 </p>
-                <div className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold px-3 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
-                  <Mail className="w-3.5 h-3.5" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full font-mono text-xs text-teal-700 dark:text-teal-300 font-semibold border border-slate-200 dark:border-slate-700">
+                  <Mail className="w-3 h-3" />
                   <span>{email}</span>
                 </div>
               </div>
 
-              {/* REAL EMAIL DELIVERY STATUS BOX & GMAIL DIRECT LINK */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {emailSendingStatus === 'sending' ? (
-                      <RefreshCw className="w-3.5 h-3.5 text-amber-500 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    )}
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px]">
-                      {emailSendingStatus === 'sending' ? 'Mengirim email...' : 'Status: Kode Terkirim ke Gmail'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-slate-400">Gateway Aktif</span>
-                </div>
-
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-normal">
-                  Periksa kotak masuk (Inbox) atau tab <em>Updates / Spam</em> di akun Gmail Anda.
-                </p>
-
-                {/* Direct Button to open Gmail in new tab */}
-                <div className="pt-1 flex items-center gap-2">
-                  <a
-                    href={getGmailInboxUrl()}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-[11px] transition-colors cursor-pointer shadow-xs"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    <span>Buka Gmail (mail.google.com)</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Error Banner */}
-              {error && (
-                <div className="bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-800/80 text-rose-700 dark:text-rose-300 px-4 py-3 rounded-xl text-xs flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  <span>{error}</span>
+              {/* Status notifikasi pengiriman email */}
+              {emailDeliveryNotice && (
+                <div className="p-2.5 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-[11px] text-teal-800 dark:text-teal-300 flex items-start gap-2">
+                  <Send className="w-3.5 h-3.5 shrink-0 text-teal-600 mt-0.5" />
+                  <span className="leading-tight">{emailDeliveryNotice}</span>
                 </div>
               )}
 
-              {/* Success Banner */}
-              {verificationSuccess && (
-                <div className="bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 px-4 py-3 rounded-xl text-xs flex items-center justify-center gap-2 animate-pulse">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="font-bold">Kode Verifikasi Cocok! Membuka Portal MutaTrack...</span>
+              {/* Error box */}
+              {generalError && (
+                <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-900 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{generalError}</span>
                 </div>
               )}
 
-              {/* 6-Digit OTP Box Inputs */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2 sm:gap-2.5">
+              {/* 6 Digit Input Boxes */}
+              <div className="space-y-2">
+                <div className="flex justify-between gap-2" onPaste={handlePasteOtp}>
                   {otpDigits.map((digit, idx) => (
                     <input
                       key={idx}
@@ -737,70 +954,75 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       value={digit}
                       onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(idx, e)}
-                      onPaste={handlePasteOtp}
                       disabled={isVerifying || verificationSuccess}
-                      className="w-11 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-mono font-bold bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30 rounded-xl text-slate-900 dark:text-white transition-all select-all outline-none"
+                      className="w-11 h-12 text-center font-mono text-xl font-bold bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-teal-500 dark:focus:border-teal-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-slate-900 dark:text-white transition-all"
                     />
                   ))}
                 </div>
-                <p className="text-[11px] text-center text-slate-400 font-mono">
-                  Ketik 6 digit atau tempelkan (paste) langsung dari Gmail.
+                <p className="text-[11px] text-slate-400 text-center">
+                  Dapat langsung di-paste dari Gmail (Ctrl+V)
                 </p>
               </div>
 
-              {/* Verify Action Button */}
-              <button
-                type="button"
-                onClick={() => executeVerification(otpDigits.join(''))}
-                disabled={isVerifying || verificationSuccess || otpDigits.join('').length < 6}
-                className="w-full bg-teal-600 hover:bg-teal-500 text-white font-medium py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-40"
-              >
-                {isVerifying ? (
-                  <span>Memverifikasi Kode Autentikasi...</span>
-                ) : verificationSuccess ? (
-                  <span>Terverifikasi! Mengalihkan...</span>
-                ) : (
-                  <>
-                    <span>Konfirmasi & Masuk Sistem</span>
-                    <CheckCircle2 className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-
-              {/* Resend Code & Instant Testing Tools */}
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+              {/* Verifying Spinner or Success */}
+              {isVerifying ? (
+                <div className="flex items-center justify-center gap-2 text-xs text-teal-600 font-medium py-2">
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Memvalidasi kredensial...</span>
+                </div>
+              ) : verificationSuccess ? (
+                <div className="flex items-center justify-center gap-2 text-xs text-emerald-600 font-bold py-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 animate-fadeIn">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Autentikasi Berhasil! Mengalihkan ke Dashboard...</span>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => generateNewCodeAndSend(email, fullName)}
-                  disabled={resendCooldown > 0}
-                  className="text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1 font-mono text-[11px] disabled:opacity-50 cursor-pointer"
+                  onClick={() => executeVerification(otpDigits.join(''))}
+                  disabled={otpDigits.join('').length !== 6}
+                  className="w-full bg-teal-700 hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-500 disabled:opacity-50 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
-                  <RefreshCw className={`w-3 h-3 ${resendCooldown > 0 ? '' : 'animate-spin'}`} />
-                  <span>
-                    {resendCooldown > 0
-                      ? `Kirim Ulang ke Gmail (${resendCooldown}s)`
-                      : 'Kirim Ulang Kode Sekarang'}
-                  </span>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Verifikasi & Masuk Dashboard</span>
                 </button>
+              )}
 
-                <button
-                  type="button"
-                  onClick={handleAutoFillCode}
-                  className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[11px] font-mono flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Klik untuk mengisi kode otomatis bagi pengujian demo"
+              {/* Action buttons: Buka Gmail & Resend */}
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+                <a
+                  href={getGmailInboxUrl()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-300 rounded-xl text-xs font-semibold transition-colors"
                 >
-                  <Sparkles className="w-3 h-3 text-teal-500" />
-                  <span>Auto-fill Kode ({generatedOtp})</span>
-                </button>
+                  <Inbox className="w-3.5 h-3.5 text-red-600" />
+                  <span>Buka Kotak Masuk Gmail di Tab Baru</span>
+                  <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+                </a>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  <span>Tidak menerima kode?</span>
+                  {resendCooldown > 0 ? (
+                    <span className="font-mono text-slate-400">Kirim ulang ({resendCooldown}s)</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => generateNewCodeAndSend(email, fullName)}
+                      className="text-teal-600 dark:text-teal-400 font-semibold hover:underline cursor-pointer"
+                    >
+                      Kirim Ulang Kode
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 px-8 py-3 text-center text-xs text-slate-500 dark:text-slate-400 font-mono">
-        MutaTrack — Integrated Variant Calling Platform • Workflow Reference: Snakemake GATK DNA-seq Pipeline
+      {/* Minimal Footer */}
+      <footer className="border-t border-slate-200 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/60 py-3 px-6 text-center text-xs text-slate-500 dark:text-slate-400 font-mono">
+        MutaTrack • Integrated Variant Calling Platform — UC-01 Login
       </footer>
     </div>
   );
