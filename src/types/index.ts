@@ -1,10 +1,15 @@
 export type UserRole = 'Pengguna Analisis' | 'Bioinformatician' | 'Principal Investigator' | 'Lab Manager';
 
 export interface User {
+  id?: string;
   email: string;
   name: string;
   role: UserRole;
   affiliation: string;
+  institution?: string;
+  isEmailVerified?: boolean;
+  verifiedAt?: string;
+  lastLoginAt?: string;
 }
 
 export type ReferenceGenome = 'GRCh38' | 'GRCh37' | 'Custom Reference';

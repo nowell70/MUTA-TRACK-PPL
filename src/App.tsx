@@ -8,6 +8,8 @@ import { MonitoringView } from './components/monitoring/MonitoringView';
 import { ResultsView } from './components/results/ResultsView';
 import { HistoryView } from './components/history/HistoryView';
 import { TraceabilityView } from './components/traceability/TraceabilityView';
+import { GitHubDeployModal } from './components/common/GitHubDeployModal';
+import { GmailVerificationModal } from './components/auth/GmailVerificationModal';
 import { AnalysisJob, User } from './types';
 import { MOCK_ANALYSES } from './data/mockData';
 
@@ -25,13 +27,16 @@ export default function App() {
         // fallback
       }
     }
-    // Default logged in as Noel Bioinformatician for immediate exploration
+    // Default logged in as Noel Bioinformatician with verified Gmail status
     return {
       id: 'USR-001',
       name: 'Noel Bioinformatician',
-      email: 'noel.analyst@mutatrack.org',
+      email: 'noelbioinfnoel@apps.ipb.ac.id',
       role: 'Pengguna Analisis',
-      institution: 'Genomic Medicine Institute',
+      affiliation: 'Departemen Bioinformatika & Genomika Komputasi IPB',
+      institution: 'Departemen Bioinformatika & Genomika Komputasi IPB',
+      isEmailVerified: true,
+      verifiedAt: '2026-09-12T08:00:00.000Z',
     };
   });
 
@@ -47,6 +52,10 @@ export default function App() {
     }
     return MOCK_ANALYSES;
   });
+
+  // 3. Modals State
+  const [showDeployModal, setShowDeployModal] = useState<boolean>(false);
+  const [showVerifyModal, setShowVerifyModal] = useState<boolean>(false);
 
   // Save to localStorage
   useEffect(() => {
@@ -66,7 +75,7 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // 3. Navigation State
+  // 4. Navigation State
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [selectedJobId, setSelectedJobId] = useState<string>('MUT-2026-001');
 
@@ -146,20 +155,23 @@ export default function App() {
     }
   };
 
-  // Reset to initial mock dataset
-  const handleResetDemoData = () => {
-    setAnalyses(MOCK_ANALYSES);
-    setSelectedJobId('MUT-2026-001');
-    setCurrentPage('dashboard');
-  };
-
-  // If user is not logged in, show UC-01 Login Page
+  // If user is not logged in, show UC-01 Login & Gmail OTP Verification Page
   if (!currentUser) {
-    return <LoginPage onLogin={handleLogin} />;
+    return (
+      <>
+        <LoginPage
+          onLoginSuccess={handleLogin}
+          onOpenDeployModal={() => setShowDeployModal(true)}
+        />
+        {showDeployModal && (
+          <GitHubDeployModal onClose={() => setShowDeployModal(false)} />
+        )}
+      </>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-teal-500 selection:text-white transition-colors">
       {/* Top Navigation Bar */}
       <Navbar
         user={currentUser}
@@ -167,6 +179,8 @@ export default function App() {
         onNavigate={handleNavigate}
         onLogout={handleLogout}
         currentPage={currentPage}
+        onOpenDeployModal={() => setShowDeployModal(true)}
+        onOpenVerifyModal={() => setShowVerifyModal(true)}
       />
 
       {/* Main Workspace Layout */}
@@ -178,6 +192,7 @@ export default function App() {
           analyses={analyses}
           runningJob={runningJob}
           activeResultJob={activeResultJob}
+          onOpenDeployModal={() => setShowDeployModal(true)}
         />
 
         {/* Dynamic Main Workspace Content */}
@@ -185,7 +200,10 @@ export default function App() {
           {currentPage === 'dashboard' && (
             <DashboardOverview
               analyses={analyses}
+              user={currentUser}
               onNavigate={handleNavigate}
+              onDeleteAnalysis={handleDeleteAnalysis}
+              onOpenDeployModal={() => setShowDeployModal(true)}
             />
           )}
 
@@ -225,6 +243,20 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* GitHub Deployment & Live Website Link Modal */}
+      {showDeployModal && (
+        <GitHubDeployModal onClose={() => setShowDeployModal(false)} />
+      )}
+
+      {/* Gmail Verification Modal */}
+      {showVerifyModal && (
+        <GmailVerificationModal
+          user={currentUser}
+          onClose={() => setShowVerifyModal(false)}
+          onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
+        />
+      )}
     </div>
   );
 }

@@ -8,12 +8,9 @@ import {
   ArrowRight,
   Clock,
   Dna,
-  FileText,
-  Search,
-  ExternalLink,
   ChevronRight,
-  Database,
   BarChart2,
+  Globe,
 } from 'lucide-react';
 import { AnalysisJob, User } from '../../types';
 
@@ -22,13 +19,14 @@ interface DashboardOverviewProps {
   user: User | null;
   onNavigate: (page: string, jobId?: string) => void;
   onDeleteAnalysis?: (id: string) => void;
+  onOpenDeployModal?: () => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   analyses,
   user,
   onNavigate,
-  onDeleteAnalysis,
+  onOpenDeployModal,
 }) => {
   const total = analyses.length;
   const running = analyses.filter((a) => a.status === 'Running').length;
@@ -39,35 +37,35 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     switch (status) {
       case 'Completed':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-300 border border-emerald-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
             <CheckCircle2 className="w-3 h-3" />
             Completed
           </span>
         );
       case 'Running':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-950/80 text-amber-300 border border-amber-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
             Running
           </span>
         );
       case 'Validating':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-950/80 text-cyan-300 border border-cyan-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 dark:bg-cyan-950/80 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800">
             <Clock className="w-3 h-3" />
             Validating
           </span>
         );
       case 'Failed':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-950/80 text-rose-300 border border-rose-800">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800">
             <XCircle className="w-3 h-3" />
             Failed
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
             {status}
           </span>
         );
@@ -75,29 +73,39 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
       {/* Welcome & Primary Action Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               Welcome to MutaTrack
             </h1>
-            <span className="text-xs font-mono bg-teal-950 text-teal-300 border border-teal-800/80 px-2 py-0.5 rounded">
+            <span className="text-xs font-mono bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800/80 px-2 py-0.5 rounded">
               Bioinformatics Hub
             </span>
           </div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             Integrated GATK DNA-seq Variant Calling & Single Canvas Analysis Environment • Operator:{' '}
-            <span className="text-teal-300 font-medium">{user?.name || 'Pengguna Analisis'}</span>
+            <span className="text-teal-700 dark:text-teal-300 font-semibold">{user?.name || 'Pengguna Analisis'}</span>
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {onOpenDeployModal && (
+            <button
+              onClick={onOpenDeployModal}
+              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium px-3.5 py-2.5 rounded-xl text-xs transition-colors border border-slate-300 dark:border-slate-700 cursor-pointer shadow-xs"
+            >
+              <Globe className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <span>Link Website GitHub</span>
+            </button>
+          )}
+
           <button
             id="dashboard-new-analysis-btn"
             onClick={() => onNavigate('new-analysis')}
-            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-medium px-4 py-2.5 rounded-lg text-xs transition-all shadow-md cursor-pointer hover:shadow-teal-500/20"
+            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-medium px-4 py-2.5 rounded-xl text-xs transition-all shadow-md cursor-pointer hover:shadow-teal-500/20"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ New Analysis</span>
@@ -108,78 +116,78 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Analyses */}
-        <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-xl shadow-xs space-y-3">
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-3 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Total Analyses</span>
-            <div className="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Analyses</span>
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
               <Layers className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-bold font-mono text-white">{total}</span>
+            <span className="text-3xl font-bold font-mono text-slate-900 dark:text-white">{total}</span>
             <span className="text-[11px] text-slate-500 font-mono">Managed Jobs</span>
           </div>
         </div>
 
         {/* Running */}
-        <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-xl shadow-xs space-y-3">
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-3 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-amber-300/90">Running</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-400 flex items-center justify-center">
+            <span className="text-xs font-semibold text-amber-700 dark:text-amber-300/90">Running</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Activity className="w-4 h-4 animate-spin" />
             </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-bold font-mono text-amber-300">{running}</span>
-            <span className="text-[11px] text-amber-400/70 font-mono">In Progress</span>
+            <span className="text-3xl font-bold font-mono text-amber-600 dark:text-amber-300">{running}</span>
+            <span className="text-[11px] text-amber-600/80 dark:text-amber-400/70 font-mono">In Progress</span>
           </div>
         </div>
 
         {/* Completed */}
-        <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-xl shadow-xs space-y-3">
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-3 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-300/90">Completed</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 flex items-center justify-center">
+            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300/90">Completed</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-bold font-mono text-emerald-300">{completed}</span>
-            <span className="text-[11px] text-emerald-400/70 font-mono">Ready for Canvas</span>
+            <span className="text-3xl font-bold font-mono text-emerald-600 dark:text-emerald-300">{completed}</span>
+            <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/70 font-mono">Ready for Canvas</span>
           </div>
         </div>
 
         {/* Failed */}
-        <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-xl shadow-xs space-y-3">
+        <div className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xs space-y-3 transition-colors">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-rose-300/90">Failed</span>
-            <div className="w-8 h-8 rounded-lg bg-rose-950/60 border border-rose-800/60 text-rose-400 flex items-center justify-center">
+            <span className="text-xs font-semibold text-rose-700 dark:text-rose-300/90">Failed</span>
+            <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
               <XCircle className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-bold font-mono text-rose-300">{failed}</span>
-            <span className="text-[11px] text-rose-400/70 font-mono">Error Logged</span>
+            <span className="text-3xl font-bold font-mono text-rose-600 dark:text-rose-300">{failed}</span>
+            <span className="text-[11px] text-rose-600/80 dark:text-rose-400/70 font-mono">Error Logged</span>
           </div>
         </div>
       </div>
 
       {/* Genomic Pipeline Banner (Snakemake reference integration) */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 shadow-xs transition-colors">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-400 flex items-center justify-center shrink-0 mt-0.5">
+          <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 mt-0.5">
             <Dna className="w-5 h-5" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-white">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Standardized GATK DNA-seq Automated Workflow
               </h3>
-              <span className="text-[10px] font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+              <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                 End-to-End
               </span>
             </div>
-            <p className="text-xs text-slate-400 max-w-3xl">
+            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
               Consolidates multi-step command-line variant calling: <em>FastQC → Cutadapt → BWA-MEM → Picard MarkDuplicates → GATK BQSR → GATK HaplotypeCaller → VariantFiltration → SnpEff / ClinVar</em> into a unified web interface with single-canvas results.
             </p>
           </div>
@@ -187,7 +195,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         <button
           onClick={() => onNavigate('traceability')}
-          className="self-start lg:self-center flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 border border-teal-800/80 bg-teal-950/50 hover:bg-teal-900/50 px-3 py-1.5 rounded-lg transition-all font-mono shrink-0 cursor-pointer"
+          className="self-start lg:self-center flex items-center gap-1.5 text-xs text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 border border-teal-300 dark:border-teal-800/80 bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-100 dark:hover:bg-teal-900/50 px-3.5 py-2 rounded-xl transition-all font-mono shrink-0 cursor-pointer"
         >
           <span>View Pipeline Traceability</span>
           <ArrowRight className="w-3.5 h-3.5" />
@@ -195,17 +203,17 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       </div>
 
       {/* Main Section: Recent Analyses */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-xs overflow-hidden">
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden transition-colors">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-white">Recent Analyses</h2>
-            <p className="text-xs text-slate-400">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">Recent Analyses</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Active and completed bioinformatics pipeline executions
             </p>
           </div>
           <button
             onClick={() => onNavigate('history')}
-            className="text-xs text-teal-400 hover:text-teal-300 font-medium flex items-center gap-1 cursor-pointer"
+            className="text-xs text-teal-600 dark:text-teal-400 hover:underline font-medium flex items-center gap-1 cursor-pointer"
           >
             <span>View All History</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -215,7 +223,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-950/60 border-b border-slate-800 text-slate-400 font-medium font-mono text-[11px]">
+              <tr className="bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-medium font-mono text-[11px]">
                 <th className="py-3 px-4">Analysis ID</th>
                 <th className="py-3 px-4">Sample ID</th>
                 <th className="py-3 px-4">Project</th>
@@ -225,30 +233,30 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                 <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 text-slate-200">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
               {analyses.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-slate-800/40 transition-colors group"
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group"
                 >
-                  <td className="py-3.5 px-4 font-mono font-medium text-teal-300">
+                  <td className="py-3.5 px-4 font-mono font-semibold text-teal-700 dark:text-teal-300">
                     {item.id}
                   </td>
-                  <td className="py-3.5 px-4 font-medium text-white">
+                  <td className="py-3.5 px-4 font-medium text-slate-900 dark:text-white">
                     {item.sampleId}
                   </td>
-                  <td className="py-3.5 px-4 text-slate-300">
+                  <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
                     {item.projectName}
                   </td>
-                  <td className="py-3.5 px-4 font-mono text-slate-300">
-                    <span className="bg-slate-800 px-2 py-0.5 rounded text-[11px] border border-slate-700/60">
+                  <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-slate-300">
+                    <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[11px] border border-slate-200 dark:border-slate-700/60">
                       {item.referenceGenome}
                     </span>
                   </td>
                   <td className="py-3.5 px-4">
                     {getStatusBadge(item.status)}
                   </td>
-                  <td className="py-3.5 px-4 text-slate-400 font-mono text-[11px]">
+                  <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
                     {item.createdAt}
                   </td>
                   <td className="py-3.5 px-4 text-right">
@@ -256,7 +264,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                       {item.status === 'Completed' ? (
                         <button
                           onClick={() => onNavigate('results', item.id)}
-                          className="px-3 py-1 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/40 rounded text-xs font-medium transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-3 py-1.5 bg-teal-50 dark:bg-teal-600/20 hover:bg-teal-100 dark:hover:bg-teal-600/30 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-500/40 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
                         >
                           <BarChart2 className="w-3.5 h-3.5" />
                           <span>View Results</span>
@@ -264,7 +272,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                       ) : (
                         <button
                           onClick={() => onNavigate('monitoring', item.id)}
-                          className="px-3 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 rounded text-xs font-medium transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-3 py-1.5 bg-amber-50 dark:bg-amber-600/20 hover:bg-amber-100 dark:hover:bg-amber-600/30 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
                         >
                           <Activity className="w-3.5 h-3.5" />
                           <span>Monitor</span>
