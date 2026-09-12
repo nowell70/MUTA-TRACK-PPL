@@ -1,6 +1,6 @@
 # MutaTrack — Integrated Variant Calling Platform
 
-[![Live Website](https://img.shields.io/badge/Live%20Website-Visit%20MutaTrack-0d9488?style=for-the-badge&logo=dna&logoColor=white)](https://ais-pre-wl6wk4vz3vjx6sfy34ajnl-471576547192.asia-southeast1.run.app)
+[![Live Website](https://img.shields.io/badge/Live%20Website-nowell70.github.io%2FMUTA--TRACK--PPL-0d9488?style=for-the-badge&logo=github&logoColor=white)](https://nowell70.github.io/MUTA-TRACK-PPL/)
 [![Pipeline](https://img.shields.io/badge/Pipeline-GATK%204.5%20Best%20Practices-blue?style=for-the-badge&logo=snakemake)](https://github.com/snakemake-workflows/dna-seq-gatk-variant-calling)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green?style=for-the-badge)](LICENSE)
 
@@ -8,14 +8,15 @@
 
 ## 🌐 Live Web Application
 
-Aplikasi MutaTrack dapat langsung diakses secara publik melalui tautan berikut:
-👉 **[https://ais-pre-wl6wk4vz3vjx6sfy34ajnl-471576547192.asia-southeast1.run.app](https://ais-pre-wl6wk4vz3vjx6sfy34ajnl-471576547192.asia-southeast1.run.app)**
+Aplikasi MutaTrack dapat langsung diakses secara online melalui tautan resmi GitHub Pages berikut:
+👉 **[https://nowell70.github.io/MUTA-TRACK-PPL/](https://nowell70.github.io/MUTA-TRACK-PPL/)**
 
-> **Tips Menampilkan Link di Header GitHub Repository:**
-> 1. Masuk ke halaman utama repository GitHub ini.
-> 2. Di sebelah kanan atas (bagian **About**), klik ikon **⚙️ Edit**.
-> 3. Pada kolom **Website**, tempelkan link: `https://ais-pre-wl6wk4vz3vjx6sfy34ajnl-471576547192.asia-southeast1.run.app`
-> 4. Simpan (**Save changes**). Link akan langsung muncul dengan ikon bola dunia 🌐 di header repository GitHub!
+> **Cara Mengaktifkan GitHub Pages di Repository Ini (Hanya 1 Kali):**
+> 1. Buka tab **Settings** di repository GitHub Anda (`https://github.com/nowell70/MUTA-TRACK-PPL/settings/pages`).
+> 2. Pada menu kiri, klik **Pages**.
+> 3. Di bawah judul **Build and deployment** > **Source**, pilih opsi **GitHub Actions**.
+> 4. Jalankan `git push origin main`. Workflow otomatis (`.github/workflows/deploy.yml`) akan langsung mem-build dan menayangkan website Anda di URL di atas dalam ~1 menit!
+> 5. Untuk memasang tautan website di header repository (kolom **About**): klik ikon **⚙️ Edit** di sebelah kanan About, lalu tempelkan link `https://nowell70.github.io/MUTA-TRACK-PPL/` pada kolom Website dan klik Save.
 
 ---
 
