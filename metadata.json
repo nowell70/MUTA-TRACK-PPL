@@ -1,0 +1,6 @@
+{
+  "name": "MutaTrack — Integrated Variant Calling Platform",
+  "description": "Integrated bioinformatics web application for end-to-end DNA-seq variant calling workflows, from FASTQ QC and BWA-MEM alignment to GATK HaplotypeCaller variant calling, annotation, single-canvas analysis, and multi-format reporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
