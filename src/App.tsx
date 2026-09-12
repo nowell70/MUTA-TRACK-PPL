@@ -1,262 +1,102 @@
-import React, { useState, useEffect } from 'react';
-import { Navbar } from './components/layout/Navbar';
-import { Sidebar } from './components/layout/Sidebar';
-import { LoginPage } from './components/auth/LoginPage';
-import { DashboardOverview } from './components/dashboard/DashboardOverview';
-import { NewAnalysisForm } from './components/analysis/NewAnalysisForm';
-import { MonitoringView } from './components/monitoring/MonitoringView';
-import { ResultsView } from './components/results/ResultsView';
-import { HistoryView } from './components/history/HistoryView';
-import { TraceabilityView } from './components/traceability/TraceabilityView';
-import { GitHubDeployModal } from './components/common/GitHubDeployModal';
-import { GmailVerificationModal } from './components/auth/GmailVerificationModal';
-import { AnalysisJob, User } from './types';
-import { MOCK_ANALYSES } from './data/mockData';
+import React, { useState, useEffect, useCallback } from 'react';
+import { AuthProvider, useAuth } from './auth/AuthContext';
+import { LoginPage } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { ProtectedRoute } from './routes/ProtectedRoute';
 
-const STORAGE_KEY = 'mutatrack_analysis_jobs';
-const USER_KEY = 'mutatrack_user';
+// Determine initial route from current browser URL / hash
+function parseCurrentRoute(): 'login' | 'dashboard' {
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
 
-export default function App() {
-  // 1. Authentication State
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem(USER_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        // fallback
-      }
-    }
-    // Default logged in as Noel Bioinformatician with verified Gmail status
-    return {
-      id: 'USR-001',
-      name: 'Noel Bioinformatician',
-      email: 'noelbioinfnoel@apps.ipb.ac.id',
-      role: 'Pengguna Analisis',
-      affiliation: 'Departemen Bioinformatika & Genomika Komputasi IPB',
-      institution: 'Departemen Bioinformatika & Genomika Komputasi IPB',
-      isEmailVerified: true,
-      verifiedAt: '2026-09-12T08:00:00.000Z',
-    };
-  });
+  if (hash.includes('dashboard') || path.endsWith('/dashboard')) {
+    return 'dashboard';
+  }
+  if (hash.includes('login') || path.endsWith('/login')) {
+    return 'login';
+  }
+  // Default to login
+  return 'login';
+}
 
-  // 2. Analyses Repository State (persisted to localStorage)
-  const [analyses, setAnalyses] = useState<AnalysisJob[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        // fallback
-      }
-    }
-    return MOCK_ANALYSES;
-  });
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [currentRoute, setCurrentRoute] = useState<'login' | 'dashboard'>(() => parseCurrentRoute());
 
-  // 3. Modals State
-  const [showDeployModal, setShowDeployModal] = useState<boolean>(false);
-  const [showVerifyModal, setShowVerifyModal] = useState<boolean>(false);
+  // Programmatic navigation synchronized with browser history
+  const navigateTo = useCallback((route: 'login' | 'dashboard') => {
+    setCurrentRoute(route);
 
-  // Save to localStorage
-  useEffect(() => {
+    // Calculate base path for Vite & GitHub Pages compatibility
+    const base = import.meta.env.BASE_URL?.replace(/\/$/, '') || '';
+    const targetUrl = `${base}/${route}`;
+
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(analyses));
-    } catch (e) {
-      console.error('Failed to persist analyses to localStorage', e);
-    }
-  }, [analyses]);
-
-  // Save user to localStorage
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem(USER_KEY);
-    }
-  }, [currentUser]);
-
-  // 4. Navigation State
-  const [currentPage, setCurrentPage] = useState<string>('dashboard');
-  const [selectedJobId, setSelectedJobId] = useState<string>('MUT-2026-001');
-
-  // Derive active running job and active result job
-  const runningJob = analyses.find((a) => a.status === 'Running');
-  const activeJob = analyses.find((a) => a.id === selectedJobId) || analyses[0];
-  const activeResultJob =
-    analyses.find((a) => a.id === selectedJobId && a.status === 'Completed') ||
-    analyses.find((a) => a.status === 'Completed') ||
-    analyses[0];
-
-  // Navigation Handler
-  const handleNavigate = (page: string, jobId?: string) => {
-    if (jobId) {
-      setSelectedJobId(jobId);
-    }
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Login / Logout Handlers
-  const handleLogin = (user: User) => {
-    setCurrentUser(user);
-    setCurrentPage('dashboard');
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-  };
-
-  // Start New Analysis Handler (UC-05)
-  const handleStartNewAnalysis = (newJob: AnalysisJob) => {
-    setAnalyses((prev) => [newJob, ...prev]);
-    setSelectedJobId(newJob.id);
-    setCurrentPage('monitoring');
-  };
-
-  // Update Existing Job (from simulator or pause/resume)
-  const handleUpdateJob = (updatedJob: AnalysisJob) => {
-    setAnalyses((prev) =>
-      prev.map((job) => (job.id === updatedJob.id ? updatedJob : job))
-    );
-  };
-
-  // Cancel Job Handler
-  const handleCancelJob = (jobId: string) => {
-    setAnalyses((prev) =>
-      prev.map((job) =>
-        job.id === jobId
-          ? {
-              ...job,
-              status: 'Failed' as const,
-              logs: [
-                ...job.logs,
-                {
-                  id: `log-${Date.now()}-cancelled`,
-                  timestamp: new Date().toLocaleTimeString(),
-                  level: 'WARN' as const,
-                  stage: 'Process Control',
-                  message: 'Analysis cancelled manually by Pengguna Analisis.',
-                },
-              ],
-            }
-          : job
-      )
-    );
-  };
-
-  // Delete Analysis Handler
-  const handleDeleteAnalysis = (jobId: string) => {
-    setAnalyses((prev) => prev.filter((job) => job.id !== jobId));
-    if (selectedJobId === jobId) {
-      const remaining = analyses.filter((job) => job.id !== jobId);
-      if (remaining.length > 0) {
-        setSelectedJobId(remaining[0].id);
+      if (window.location.pathname !== targetUrl) {
+        window.history.pushState(null, '', targetUrl);
       }
+    } catch {
+      // Gracefully handle iframe restrictions if any
     }
-  };
+  }, []);
 
-  // If user is not logged in, show UC-01 Login & Gmail OTP Verification Page
-  if (!currentUser) {
+  // Listen to browser navigation events (Back/Forward buttons & hash changes)
+  useEffect(() => {
+    const handlePopState = () => {
+      const detected = parseCurrentRoute();
+      setCurrentRoute(detected);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
+  }, []);
+
+  // Routing Guard Rules:
+  // 1. Unauthenticated trying to access /dashboard -> redirect to /login
+  // 2. Authenticated on /login -> redirect to /dashboard
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!isAuthenticated && currentRoute === 'dashboard') {
+      navigateTo('login');
+    } else if (isAuthenticated && currentRoute === 'login') {
+      navigateTo('dashboard');
+    }
+  }, [isAuthenticated, isLoading, currentRoute, navigateTo]);
+
+  // Loading indicator during initial credential hydration
+  if (isLoading) {
     return (
-      <>
-        <LoginPage
-          onLoginSuccess={handleLogin}
-          onOpenDeployModal={() => setShowDeployModal(true)}
-        />
-        {showDeployModal && (
-          <GitHubDeployModal onClose={() => setShowDeployModal(false)} />
-        )}
-      </>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-slate-500 font-mono">Memuat MutaTrack...</p>
+        </div>
+      </div>
     );
   }
 
+  // Route Dispatcher
+  if (currentRoute === 'dashboard' && isAuthenticated) {
+    return (
+      <ProtectedRoute fallbackRoute={() => navigateTo('login')}>
+        <Dashboard onLogout={() => navigateTo('login')} />
+      </ProtectedRoute>
+    );
+  }
+
+  return <LoginPage onLoginSuccess={() => navigateTo('dashboard')} />;
+}
+
+export default function App() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-teal-500 selection:text-white transition-colors">
-      {/* Top Navigation Bar */}
-      <Navbar
-        user={currentUser}
-        runningJob={runningJob}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
-        currentPage={currentPage}
-        onOpenDeployModal={() => setShowDeployModal(true)}
-        onOpenVerifyModal={() => setShowVerifyModal(true)}
-      />
-
-      {/* Main Workspace Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar Navigation */}
-        <Sidebar
-          currentPage={currentPage}
-          onNavigate={handleNavigate}
-          analyses={analyses}
-          runningJob={runningJob}
-          activeResultJob={activeResultJob}
-          onOpenDeployModal={() => setShowDeployModal(true)}
-        />
-
-        {/* Dynamic Main Workspace Content */}
-        <main className="flex-1 overflow-y-auto pb-16">
-          {currentPage === 'dashboard' && (
-            <DashboardOverview
-              analyses={analyses}
-              user={currentUser}
-              onNavigate={handleNavigate}
-              onDeleteAnalysis={handleDeleteAnalysis}
-              onOpenDeployModal={() => setShowDeployModal(true)}
-            />
-          )}
-
-          {currentPage === 'new-analysis' && (
-            <NewAnalysisForm
-              onStartAnalysis={handleStartNewAnalysis}
-              onCancel={() => handleNavigate('dashboard')}
-            />
-          )}
-
-          {currentPage === 'monitoring' && activeJob && (
-            <MonitoringView
-              job={activeJob}
-              onUpdateJob={handleUpdateJob}
-              onViewResults={(jobId) => handleNavigate('results', jobId)}
-              onCancelJob={handleCancelJob}
-            />
-          )}
-
-          {currentPage === 'results' && activeResultJob && (
-            <ResultsView
-              job={activeResultJob}
-              onNavigate={handleNavigate}
-            />
-          )}
-
-          {currentPage === 'history' && (
-            <HistoryView
-              analyses={analyses}
-              onNavigate={handleNavigate}
-              onDeleteAnalysis={handleDeleteAnalysis}
-            />
-          )}
-
-          {currentPage === 'traceability' && (
-            <TraceabilityView />
-          )}
-        </main>
-      </div>
-
-      {/* GitHub Deployment & Live Website Link Modal */}
-      {showDeployModal && (
-        <GitHubDeployModal onClose={() => setShowDeployModal(false)} />
-      )}
-
-      {/* Gmail Verification Modal */}
-      {showVerifyModal && (
-        <GmailVerificationModal
-          user={currentUser}
-          onClose={() => setShowVerifyModal(false)}
-          onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
-        />
-      )}
-    </div>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
