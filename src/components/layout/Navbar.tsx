@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Sun,
   Moon,
-  Globe,
   MailCheck,
   AlertTriangle,
 } from 'lucide-react';
@@ -22,7 +21,6 @@ interface NavbarProps {
   onNavigate: (page: string, jobId?: string) => void;
   onLogout: () => void;
   currentPage: string;
-  onOpenDeployModal?: () => void;
   onOpenVerifyModal?: () => void;
 }
 
@@ -32,7 +30,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNavigate,
   onLogout,
   currentPage,
-  onOpenDeployModal,
   onOpenVerifyModal,
 }) => {
   const { isDark, toggleTheme } = useTheme();
@@ -107,18 +104,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="text-amber-600 dark:text-amber-400/80 hidden md:inline">
               ({runningJob.stages[runningJob.currentStageIndex]?.name || 'Running'})
             </span>
-          </button>
-        )}
-
-        {/* GitHub Live Website Modal Button */}
-        {onOpenDeployModal && (
-          <button
-            onClick={onOpenDeployModal}
-            className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
-            title="Buka panduan tautan website GitHub & Live URL"
-          >
-            <Globe className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-            <span className="hidden sm:inline">Website & GitHub</span>
           </button>
         )}
 

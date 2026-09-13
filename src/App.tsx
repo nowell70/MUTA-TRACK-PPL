@@ -8,7 +8,6 @@ import { MonitoringView } from './components/monitoring/MonitoringView';
 import { ResultsView } from './components/results/ResultsView';
 import { HistoryView } from './components/history/HistoryView';
 import { TraceabilityView } from './components/traceability/TraceabilityView';
-import { GitHubDeployModal } from './components/common/GitHubDeployModal';
 import { GmailVerificationModal } from './components/auth/GmailVerificationModal';
 import { AnalysisJob, User } from './types';
 import { MOCK_ANALYSES } from './data/mockData';
@@ -51,7 +50,6 @@ export default function App() {
   // 3. Navigation & Modals State
   const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [selectedJobId, setSelectedJobId] = useState<string>('MUT-2026-001');
-  const [showDeployModal, setShowDeployModal] = useState<boolean>(false);
   const [showVerifyModal, setShowVerifyModal] = useState<boolean>(false);
 
   // Initialize persistent auth database on mount
@@ -227,19 +225,13 @@ export default function App() {
         window.location.hash.toLowerCase().includes('signup'));
 
     return (
-      <>
-        <LoginPage
-          onLoginSuccess={handleLogin}
-          onOpenDeployModal={() => setShowDeployModal(true)}
-          initialMode={isSignupUrl ? 'signup' : 'login'}
-          onModeChange={(mode) => {
-            syncBrowserUrl(mode);
-          }}
-        />
-        {showDeployModal && (
-          <GitHubDeployModal onClose={() => setShowDeployModal(false)} />
-        )}
-      </>
+      <LoginPage
+        onLoginSuccess={handleLogin}
+        initialMode={isSignupUrl ? 'signup' : 'login'}
+        onModeChange={(mode) => {
+          syncBrowserUrl(mode);
+        }}
+      />
     );
   }
 
@@ -253,7 +245,6 @@ export default function App() {
         onNavigate={handleNavigate}
         onLogout={handleLogout}
         currentPage={currentPage}
-        onOpenDeployModal={() => setShowDeployModal(true)}
         onOpenVerifyModal={() => setShowVerifyModal(true)}
       />
 
@@ -266,7 +257,6 @@ export default function App() {
           analyses={analyses}
           runningJob={runningJob}
           activeResultJob={activeResultJob}
-          onOpenDeployModal={() => setShowDeployModal(true)}
         />
 
         {/* Dynamic Main Workspace Content */}
@@ -277,7 +267,6 @@ export default function App() {
               user={currentUser}
               onNavigate={handleNavigate}
               onDeleteAnalysis={handleDeleteAnalysis}
-              onOpenDeployModal={() => setShowDeployModal(true)}
             />
           )}
 
@@ -319,11 +308,6 @@ export default function App() {
           )}
         </main>
       </div>
-
-      {/* GitHub Deployment & Live Website Link Modal */}
-      {showDeployModal && (
-        <GitHubDeployModal onClose={() => setShowDeployModal(false)} />
-      )}
 
       {/* Gmail Verification Modal */}
       {showVerifyModal && (

@@ -8,10 +8,10 @@ import {
 } from '../types';
 
 export const CURRENT_USER: User = {
-  email: 'noelbioinfnoel@apps.ipb.ac.id',
-  name: 'Noel Bioinformatician',
+  email: 'analyst@mutatrack.org',
+  name: 'Genomic Analyst',
   role: 'Pengguna Analisis',
-  affiliation: 'Department of Bioinformatics & Computational Genomics',
+  affiliation: 'Laboratory of Computational Genomics',
 };
 
 export const DEFAULT_PARAMETERS: AnalysisParameters = {

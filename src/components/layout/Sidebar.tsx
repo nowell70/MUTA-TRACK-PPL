@@ -6,10 +6,8 @@ import {
   FileCheck2,
   History,
   GitFork,
-  ExternalLink,
   Cpu,
   Layers,
-  Globe,
 } from 'lucide-react';
 import { AnalysisJob } from '../../types';
 
@@ -19,7 +17,6 @@ interface SidebarProps {
   analyses: AnalysisJob[];
   runningJob?: AnalysisJob;
   activeResultJob?: AnalysisJob;
-  onOpenDeployModal?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -28,7 +25,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   analyses,
   runningJob,
   activeResultJob,
-  onOpenDeployModal,
 }) => {
   const completedCount = analyses.filter((a) => a.status === 'Completed').length;
   const runningCount = analyses.filter((a) => a.status === 'Running').length;
@@ -174,34 +170,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Footer Info & GitHub Deploy Modal button */}
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/40 text-[11px] text-slate-500 dark:text-slate-400 space-y-2.5">
-        {onOpenDeployModal && (
-          <button
-            onClick={onOpenDeployModal}
-            className="w-full py-1.5 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Globe className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-            <span>Tampilkan di GitHub (Link)</span>
-          </button>
-        )}
-
+      {/* Footer Info */}
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/40 text-[11px] text-slate-500 dark:text-slate-400 space-y-2">
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1 font-mono text-[10px]">
-            <Layers className="w-3 h-3 text-slate-400" /> Reference
+            <Layers className="w-3 h-3 text-slate-400" /> Pipeline Core
           </span>
-          <a
-            href="https://github.com/snakemake-workflows/dna-seq-gatk-variant-calling"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1 text-[10px] text-teal-600 dark:text-teal-400 hover:underline font-mono"
-            title="Buka repository referensi Snakemake GATK"
-          >
-            GitHub <ExternalLink className="w-2.5 h-2.5" />
-          </a>
+          <span className="font-mono text-[10px] text-teal-600 dark:text-teal-400">
+            GATK v4.5
+          </span>
         </div>
         <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-          System: Online • Local Sandbox Mode
+          System: Online • Production Mode
         </div>
       </div>
     </aside>

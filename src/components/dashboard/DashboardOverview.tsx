@@ -10,7 +10,6 @@ import {
   Dna,
   ChevronRight,
   BarChart2,
-  Globe,
 } from 'lucide-react';
 import { AnalysisJob, User } from '../../types';
 
@@ -19,14 +18,12 @@ interface DashboardOverviewProps {
   user: User | null;
   onNavigate: (page: string, jobId?: string) => void;
   onDeleteAnalysis?: (id: string) => void;
-  onOpenDeployModal?: () => void;
 }
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   analyses,
   user,
   onNavigate,
-  onOpenDeployModal,
 }) => {
   const total = analyses.length;
   const running = analyses.filter((a) => a.status === 'Running').length;
@@ -92,16 +89,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {onOpenDeployModal && (
-            <button
-              onClick={onOpenDeployModal}
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium px-3.5 py-2.5 rounded-xl text-xs transition-colors border border-slate-300 dark:border-slate-700 cursor-pointer shadow-xs"
-            >
-              <Globe className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-              <span>Link Website GitHub</span>
-            </button>
-          )}
-
           <button
             id="dashboard-new-analysis-btn"
             onClick={() => onNavigate('new-analysis')}

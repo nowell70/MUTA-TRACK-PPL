@@ -57,7 +57,7 @@ export async function sendOtpToGmail(
       to_email: recipientEmail,
       email: recipientEmail,
       name: userName || 'Pengguna Analisis',
-      message: `Halo ${userName || 'Pengguna Analisis'},\n\nBerikut adalah Kode Autentikasi Pengguna Sistem untuk masuk ke portal MutaTrack:\n\n=========================================\nKODE AUTENTIKASI: ${otpCode}\n=========================================\n\nKode ini bersifat rahasia dan berlaku selama 15 menit.\nAlamat Email Terdaftar: ${recipientEmail}\nPlatform: MutaTrack - Integrated Variant Calling Platform (Snakemake GATK Pipeline)\nDepartemen Bioinformatika & Genomika Komputasi IPB.\n\nJika Anda tidak melakukan permintaan ini, silakan abaikan pesan ini.\n\nSalam Hormat,\nTim Keamanan Sistem MutaTrack`,
+      message: `Halo ${userName || 'Pengguna Analisis'},\n\nBerikut adalah Kode Autentikasi Pengguna Sistem untuk masuk ke portal MutaTrack:\n\n=========================================\nKODE AUTENTIKASI: ${otpCode}\n=========================================\n\nKode ini bersifat rahasia dan berlaku selama 15 menit.\nAlamat Email Terdaftar: ${recipientEmail}\nPlatform: MutaTrack - Integrated Variant Calling Platform (Snakemake GATK Pipeline)\nCenter for Computational Genomics & Bioinformatics.\n\nJika Anda tidak melakukan permintaan ini, silakan abaikan pesan ini.\n\nSalam Hormat,\nTim Keamanan Sistem MutaTrack`,
     };
 
     const response = await fetch('https://api.web3forms.com/submit', {

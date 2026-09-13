@@ -228,7 +228,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({ job, onClose }) => {
 
           {/* Footer Sign-off */}
           <div className="pt-4 border-t border-slate-800 print:border-slate-300 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-            <div>Sign-off: Noel Bioinformatician (Pengguna Analisis)</div>
+            <div>Sign-off: Authorized Genomic Analyst</div>
             <div>MutaTrack Genomics Workflow Engine • Verified Automated Output</div>
           </div>
         </div>
