@@ -12,6 +12,7 @@ import { GitHubDeployModal } from './components/common/GitHubDeployModal';
 import { GmailVerificationModal } from './components/auth/GmailVerificationModal';
 import { AnalysisJob, User } from './types';
 import { MOCK_ANALYSES } from './data/mockData';
+import { initAuthDatabase } from './utils/authService';
 
 const STORAGE_KEY = 'mutatrack_analysis_jobs';
 const USER_KEY = 'mutatrack_user';
@@ -52,6 +53,11 @@ export default function App() {
   const [selectedJobId, setSelectedJobId] = useState<string>('MUT-2026-001');
   const [showDeployModal, setShowDeployModal] = useState<boolean>(false);
   const [showVerifyModal, setShowVerifyModal] = useState<boolean>(false);
+
+  // Initialize persistent auth database on mount
+  useEffect(() => {
+    initAuthDatabase();
+  }, []);
 
   // Sync analyses to localStorage
   useEffect(() => {
@@ -215,11 +221,20 @@ export default function App() {
 
   // If user is not logged in, render UC-01 Login & Sign In Page
   if (!currentUser) {
+    const isSignupUrl =
+      typeof window !== 'undefined' &&
+      (window.location.pathname.toLowerCase().endsWith('/signup') ||
+        window.location.hash.toLowerCase().includes('signup'));
+
     return (
       <>
         <LoginPage
           onLoginSuccess={handleLogin}
           onOpenDeployModal={() => setShowDeployModal(true)}
+          initialMode={isSignupUrl ? 'signup' : 'login'}
+          onModeChange={(mode) => {
+            syncBrowserUrl(mode);
+          }}
         />
         {showDeployModal && (
           <GitHubDeployModal onClose={() => setShowDeployModal(false)} />
@@ -268,8 +283,10 @@ export default function App() {
 
           {currentPage === 'new-analysis' && (
             <NewAnalysisForm
+              existingAnalyses={analyses}
               onStartAnalysis={handleStartNewAnalysis}
               onCancel={() => handleNavigate('dashboard')}
+              currentUser={currentUser}
             />
           )}
 
